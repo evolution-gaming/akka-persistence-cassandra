@@ -41,7 +41,7 @@ import com.typesafe.config.Config
 import akka.persistence.query.TimeBasedUUID
 
 object EventsByTagSpec {
-  val today = LocalDate.now(ZoneOffset.UTC)
+  val timeNow: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
 
   val config = ConfigFactory.parseString(s"""
     akka.loglevel = INFO
@@ -74,7 +74,7 @@ object EventsByTagSpec {
     cassandra-query-journal {
       refresh-interval = 500ms
       max-buffer-size = 50
-      first-time-bucket = ${TimeBucket(today.minusDays(5)).key}
+      first-time-bucket = "${ TimeBucket(timeNow.minusHours(5)) }"
       eventual-consistency-delay = 2s
     }
     """).withFallback(CassandraLifecycle.config)
@@ -86,7 +86,7 @@ object EventsByTagSpec {
     """).withFallback(config)
 
   val strictConfigFirstOffset1001DaysAgo = ConfigFactory.parseString(s"""
-    cassandra-query-journal.first-time-bucket = ${TimeBucket(today.minusDays(1001)).key}
+    cassandra-query-journal.first-time-bucket = "${ TimeBucket(timeNow.minusDays(1001)) }"
     """).withFallback(strictConfig)
 }
 
@@ -290,21 +290,21 @@ class EventsByTagSpec extends AbstractEventsByTagSpec("EventsByTagSpec", EventsB
     }
 
     "find existing events that spans several time buckets" in {
-      val t1 = today.minusDays(5).atStartOfDay.plusHours(13)
+      val t1 = timeNow.minusHours(5).plusMinutes(30)
       val w1 = UUID.randomUUID().toString
       val pr1 = PersistentRepr("e1", 1L, "p1", "", writerUuid = w1)
-      writeTestEvent(t1, pr1, Set("T1"))
-      val t2 = t1.plusHours(1)
+      writeTestEvent(t1, pr1, Set("T0"))
+      val t2 = t1.plusMinutes(10)
       val pr2 = PersistentRepr("e2", 2L, "p1", "", writerUuid = w1)
-      writeTestEvent(t2, pr2, Set("T1"))
-      val t3 = t1.plusDays(1)
+      writeTestEvent(t2, pr2, Set("T0"))
+      val t3 = t1.plusHours(1)
       val pr3 = PersistentRepr("e3", 3L, "p1", "", writerUuid = w1)
-      writeTestEvent(t3, pr3, Set("T1"))
-      val t4 = t1.plusDays(3)
+      writeTestEvent(t3, pr3, Set("T0"))
+      val t4 = t1.plusHours(3)
       val pr4 = PersistentRepr("e4", 4L, "p1", "", writerUuid = w1)
-      writeTestEvent(t4, pr4, Set("T1"))
+      writeTestEvent(t4, pr4, Set("T0"))
 
-      val src = queries.currentEventsByTag(tag = "T1", offset = NoOffset)
+      val src = queries.currentEventsByTag(tag = "T0", offset = NoOffset)
       val probe = src.runWith(TestSink.probe[Any])
       probe.request(2)
       probe.expectNextPF { case e @ EventEnvelope(_, "p1", 1L, "e1") => e }
@@ -389,11 +389,11 @@ class EventsByTagSpec extends AbstractEventsByTagSpec("EventsByTagSpec", EventsB
     }
 
     "find new events that spans several time buckets" in {
-      val t1 = today.minusDays(5).atStartOfDay.plusHours(13)
+      val t1 = timeNow.minusHours(5).plusMinutes(30)
       val w1 = UUID.randomUUID().toString
       val pr1 = PersistentRepr("e1", 1L, "p1", "", writerUuid = w1)
       writeTestEvent(t1, pr1, Set("T1"))
-      val t2 = t1.plusHours(1)
+      val t2 = t1.plusMinutes(10)
       val pr2 = PersistentRepr("e2", 2L, "p1", "", writerUuid = w1)
       writeTestEvent(t2, pr2, Set("T1"))
 

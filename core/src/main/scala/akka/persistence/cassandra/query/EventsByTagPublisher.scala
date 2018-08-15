@@ -3,7 +3,6 @@
  */
 package akka.persistence.cassandra.query
 
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
@@ -126,11 +125,11 @@ private[query] class EventsByTagPublisher(
   def nextTimeBucket(): Unit =
     currTimeBucket = currTimeBucket.next()
 
-  def today(): LocalDate =
-    LocalDateTime.now(ZoneOffset.UTC).minus(eventualConsistencyDelayMillis, ChronoUnit.MILLIS).toLocalDate
+  def now(): LocalDateTime =
+    LocalDateTime.now(ZoneOffset.UTC).minus(eventualConsistencyDelayMillis, ChronoUnit.MILLIS)
 
-  def isTimeBucketBeforeToday(): Boolean =
-    currTimeBucket.isBefore(today())
+  def isTimeBucketBeforeNow(): Boolean =
+    currTimeBucket.isBefore(TimeBucket(now()))
 
   def backtracking: Boolean = backtrackingMode match {
     case NoBacktracking       => false
@@ -200,7 +199,7 @@ private[query] class EventsByTagPublisher(
   }
 
   def timeToLookForDelayed: Boolean =
-    strictBySeqNumber && !backtracking && lookForDelayedDeadline.isOverdue() && !isTimeBucketBeforeToday()
+    strictBySeqNumber && !backtracking && lookForDelayedDeadline.isOverdue() && !isTimeBucketBeforeNow()
 
   def timeForReplay: Boolean =
     !isToOffsetDone && (backtracking || buf.isEmpty || buf.size <= maxBufferSize / 2)
@@ -274,7 +273,7 @@ private[query] class EventsByTagPublisher(
 
       if (mightBeMore) {
         self ! Continue // fetched limit, more to fetch
-      } else if (isTimeBucketBeforeToday()) {
+      } else if (isTimeBucketBeforeNow()) {
         nextTimeBucket()
         self ! Continue // fetch more from next time bucket
       } else {

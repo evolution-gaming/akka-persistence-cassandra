@@ -3,7 +3,7 @@
  */
 package akka.persistence.cassandra.query
 
-import java.time.{ ZoneOffset, LocalDate }
+import java.time.{ ZoneOffset, LocalDateTime }
 
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.persistence.cassandra.CassandraLifecycle
@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 import akka.persistence.query.NoOffset
 
 object EventAdaptersReadSpec {
-  val today = LocalDate.now(ZoneOffset.UTC)
+  val timeNow: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
 
   val config = ConfigFactory.parseString(s"""
     akka.loglevel = INFO
@@ -43,7 +43,7 @@ object EventAdaptersReadSpec {
     cassandra-query-journal {
       refresh-interval = 500ms
       max-buffer-size = 50
-      first-time-bucket = ${TimeBucket(today.minusDays(5)).key}
+      first-time-bucket = "${ TimeBucket(timeNow.minusHours(5)) }"
       eventual-consistency-delay = 2s
     }
     """).withFallback(CassandraLifecycle.config)

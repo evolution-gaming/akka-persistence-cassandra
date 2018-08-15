@@ -4,6 +4,7 @@
 package akka.persistence.cassandra.query.scaladsl
 
 import java.net.URLEncoder
+import java.time.ZoneOffset
 import java.util.UUID
 
 import java.util.concurrent.atomic.AtomicLong
@@ -179,7 +180,7 @@ class CassandraReadJournal(system: ExtendedActorSystem, config: Config)
   val firstOffset: UUID = {
     // FIXME perhaps we can do something smarter, such as caching the highest offset retrieved
     // from queries
-    val timestamp = queryPluginConfig.firstTimeBucket.startTimestamp
+    val timestamp = queryPluginConfig.firstTimeBucket.hour.toInstant(ZoneOffset.UTC).toEpochMilli
     UUIDs.startOf(timestamp)
   }
 

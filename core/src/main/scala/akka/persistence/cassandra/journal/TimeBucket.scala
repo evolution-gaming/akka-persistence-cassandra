@@ -3,46 +3,43 @@
  */
 package akka.persistence.cassandra.journal
 
-import java.time.format.DateTimeFormatter
+import akka.persistence.cassandra.query.firstBucketFormatter
+
 import java.time.LocalDateTime
 import java.time.Instant
 import java.time.ZoneOffset
-import java.time.LocalDate
+
 import com.datastax.driver.core.utils.UUIDs
 import java.util.UUID
 
-private[cassandra] object TimeBucket {
-  private val timeBucketFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
-  def apply(key: String): TimeBucket =
-    apply(LocalDate.parse(key, timeBucketFormatter), key)
+private[cassandra] object TimeBucket {
 
   def apply(timeuuid: UUID): TimeBucket =
     apply(UUIDs.unixTimestamp(timeuuid))
 
   def apply(epochTimestamp: Long): TimeBucket = {
-    val time = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochTimestamp), ZoneOffset.UTC)
-    apply(time.toLocalDate)
+    apply(LocalDateTime.ofInstant(Instant.ofEpochMilli(epochTimestamp), ZoneOffset.UTC))
   }
-
-  def apply(day: LocalDate): TimeBucket = {
-    val key = day.format(timeBucketFormatter)
-    apply(day, key)
-  }
-
 }
 
-private[cassandra] final case class TimeBucket(day: LocalDate, key: String) {
+private[cassandra] final case class TimeBucket(private val time: LocalDateTime) {
+
+  val hour: LocalDateTime = {
+    val millisPerHour = (1 hour).toMillis
+    val key: Long = time.toInstant(ZoneOffset.UTC).toEpochMilli / millisPerHour
+    LocalDateTime.ofInstant(Instant.ofEpochMilli(key * millisPerHour), ZoneOffset.UTC)
+  }
+
+  val key: String = hour.toInstant(ZoneOffset.UTC).toEpochMilli.toString
 
   def next(): TimeBucket =
-    TimeBucket(day.plusDays(1))
+    TimeBucket(hour.plusHours(1))
 
-  def isBefore(other: LocalDate): Boolean =
-    day.isBefore(other)
+  def isBefore(other: TimeBucket): Boolean =
+    hour.isBefore(other.hour)
 
-  def startTimestamp: Long =
-    day.atStartOfDay.toInstant(ZoneOffset.UTC).toEpochMilli
-
-  override def toString: String = key
-
+  override def toString: String = hour.format(firstBucketFormatter)
 }

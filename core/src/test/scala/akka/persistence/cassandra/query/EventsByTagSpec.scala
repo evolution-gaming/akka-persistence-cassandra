@@ -4,7 +4,6 @@
 package akka.persistence.cassandra.query
 
 import java.nio.ByteBuffer
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -290,7 +289,7 @@ class EventsByTagSpec extends AbstractEventsByTagSpec("EventsByTagSpec", EventsB
     }
 
     "find existing events that spans several time buckets" in {
-      val t1 = timeNow.minusHours(5).plusMinutes(30)
+      val t1 = timeNow.truncatedTo(ChronoUnit.HOURS).minusHours(5).plusMinutes(30)
       val w1 = UUID.randomUUID().toString
       val pr1 = PersistentRepr("e1", 1L, "p1", "", writerUuid = w1)
       writeTestEvent(t1, pr1, Set("T0"))
@@ -389,7 +388,7 @@ class EventsByTagSpec extends AbstractEventsByTagSpec("EventsByTagSpec", EventsB
     }
 
     "find new events that spans several time buckets" in {
-      val t1 = timeNow.minusHours(5).plusMinutes(30)
+      val t1 = timeNow.truncatedTo(ChronoUnit.HOURS).minusHours(5).plusMinutes(30)
       val w1 = UUID.randomUUID().toString
       val pr1 = PersistentRepr("e1", 1L, "p1", "", writerUuid = w1)
       writeTestEvent(t1, pr1, Set("T1"))

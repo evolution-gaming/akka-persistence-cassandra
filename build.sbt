@@ -21,10 +21,12 @@ val akkaPersistenceCassandraDependencies = Seq(
 def common: Seq[Setting[_]] = SbtScalariform.scalariformSettings ++ Seq(
   organization := "com.typesafe.akka",
   organizationName := "Typesafe Inc.",
-  licenses := Seq(("Apache License, Version 2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+  licenses := Seq(("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))),
+
+  bintrayOrganization := Some("evolutiongaming"),
 
   crossScalaVersions := Seq("2.11.11", "2.12.2"),
-  scalaVersion := crossScalaVersions.value.head,
+  scalaVersion := crossScalaVersions.value.last,
   crossVersion := CrossVersion.binary,
 
   scalacOptions ++= Seq(
